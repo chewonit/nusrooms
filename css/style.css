@@ -50,6 +50,13 @@ h1,h2,h3,h4,h5,h6 {
 	
 }
 
+.room-item-header {
+	display: inline-block;
+}
+.room-item-delete {
+	font-size: 1.7em;
+}
+
 .room-timetable tr td {
 	text-align: center;
 }
