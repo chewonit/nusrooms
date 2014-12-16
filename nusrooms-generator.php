@@ -61,32 +61,37 @@ class Room {
 	}
 }
 
-function generateUrl() {
+function getAccademicYear() {
+	$dateM = date("m");
 	$dateY = date("Y");
+	$year = "";
+	if ( 8 <= $dateM && $dateM <= 12  ) {
+		$year = $dateY . "-" . (intval($dateY)+1);
+	} else {
+		$year = (intval($dateY)-1) . "-" . $dateY;
+	}
+	return $year;
+}
+
+function getAccademicSem() {
 	$dateM = date("m");
 	$dateD = date("d");
 	$semNo = 1;
-	$yearLink = "";
 	
-	if ( 8 <= $dateM && $dateM <= 12  ) {
+	if ( 8 <= $dateM && $dateM <= 12 && $dateD < 16 ) {
 		$semNo = 1;
-	} else if ( 1 <= $dateM && $dateM <= 4  ) {
-		$semNo = 2;
-	} else if ( 1 <= $dateM && $dateM <= 4  ) {
+	} else if ( 1 <= $dateM && $dateM <= 4 ||  $dateM = 12 ) {
 		$semNo = 2;
 	} else if ( 5 <= $dateM && $dateM <= 6  && $dateD < 20 ) {
 		$semNo = 3;
 	} else {
 		$semNo = 4;
 	}
-	
-	if ( 8 <= $dateM && $dateM <= 12  ) {
-		$yearLink = $dateY . "-" . (intval($dateY)+1);
-	} else {
-		$yearLink = (intval($dateY)-1) . "-" . $dateY;
-	}
-	
-	return "http://api.nusmods.com/" .$yearLink. "/" .$semNo. "/timetable.json";
+	return $semNo;
+}
+
+function generateUrl() {
+	return "http://api.nusmods.com/" .getAccademicYear(). "/" .getAccademicSem(). "/timetable.json";
 }
 
 function fetchJSON($url) {
@@ -106,11 +111,30 @@ function fetchJSON($url) {
 	return $json;
 }
 
+function writeObjectJsonToFile($path, $obj) {
+	$fh = fopen($path, "w");
+    if (! $fh) {
+        throw new Exception("Could not open the file!");
+    }
+	fwrite( $fh, json_encode($obj) );
+	fclose( $fh );
+}
+
+$nusrooms_metadata = array();
+$rooms = array();
+$roomList = array();
+
+$nusrooms_metadata["year"] = getAccademicYear();
+$nusrooms_metadata["sem"] = getAccademicSem();
+$nusrooms_metadata["date"] = date("d F Y");
+
 $url = generateUrl();
 $modules = json_decode( fetchJSON($url), true );
 
-$rooms = array();
-$roomList = array();
+if ( $modules == null ){
+	echo "Error: Could not fetch data from api.nusmods.com. <br />";
+	exit("FAIL: NUS Rooms Data Generation failed.");
+}
 
 // Register each module's venue to the rooms array
 foreach ($modules as $module) {
@@ -128,7 +152,6 @@ foreach ($modules as $module) {
 			$rooms[ $timetable["Venue"] ] = new Room( $timetable["Venue"] );
 			$rooms[ $timetable["Venue"] ]->setNotVacant( $timetable["DayText"], $timetable["StartTime"], $timetable["EndTime"] );
 		}
-			
 	}
 }
 
@@ -141,22 +164,12 @@ foreach ($rooms as $roomKey) {
 
 // Write JSON to file
 try {
-    $fh = fopen("nusrooms.json", "w");
-    if (! $fh) {
-        throw new Exception("Could not open the file!");
-    }
-	fwrite( $fh, json_encode($rooms) );
-	fclose( $fh );
-	
-	$fh = fopen("roomlist.json", "w");
-    if (! $fh) {
-        throw new Exception("Could not open the file!");
-    }
-	fwrite( $fh, json_encode($roomList) );
-	fclose( $fh );
+	writeObjectJsonToFile("nusrooms.json", $rooms);
+	writeObjectJsonToFile("roomlist.json", $roomList);
+	writeObjectJsonToFile("nusrooms_metadata.json", $nusrooms_metadata);
 }
 catch (Exception $e) {
-    echo "Error (File: ".$e->getFile().", line ". $e->getLine()."): ".$e->getMessage();
+    echo "Error (File: ".$e->getFile().", line ". $e->getLine()."): ".$e->getMessage() . " <br />";
 	exit("FAIL: NUS Rooms Data Generation failed.");
 }
 

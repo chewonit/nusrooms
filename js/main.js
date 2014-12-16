@@ -37,6 +37,35 @@ var RoomData = function(url) {
 	};
 };
 
+var RoomMetaData = function(url) {
+	
+	var metadata = (function () {
+		var json = null;
+		$.ajax({
+			'async': false,
+			'global': false,
+			'url': url,
+			'dataType': "json",
+			'success': function (data) {
+				json = data;
+			}
+		});
+		return json;
+	})();
+	
+	return {
+		getYear: function() {
+			return metadata["year"];
+		},
+		getSem: function() {
+			return metadata["sem"];
+		},
+		getDate: function() {
+			return metadata["date"];
+		}
+	};
+};
+
 var RoomHandler = function(data, list, textField) {
 
 	var roomData = data;
@@ -65,6 +94,7 @@ $( document ).ready(function() {
 	var $textInput = $('#textfield_roomInput');
 	
 	var roomData = new RoomData("nusrooms.json");
+	var roomMetaData = new RoomMetaData("nusrooms_metadata.json");
 	
 	var roomHandler = new RoomHandler( roomData, $('#room-list'), $textInput );
 	
@@ -77,6 +107,9 @@ $( document ).ready(function() {
 	});
 
 	$textInput.focus();	
+	
+	$('#nusrooms-status').html( roomMetaData.getYear().replace("-", "/") + " Semester " + roomMetaData.getSem() 
+		+ '<br />Room schedules updated on ' + roomMetaData.getDate());
 });
 
 function formatRoom(room) {

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap:http://nusrooms.darrychew.com/sitemap.xml
