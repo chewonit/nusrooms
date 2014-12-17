@@ -3,6 +3,7 @@
 class Room {
 	
 	public $schedule = array();
+	public $departments = array();
 	
 	function Room($name) {
 		$this->name = $name;
@@ -53,6 +54,13 @@ class Room {
 		}
 	}
 	
+	function addDept($dept) {
+		if ( !in_array( $dept, $this->departments ) ) {
+			array_push( $this->departments, $dept );
+			sort( $this->departments );
+		}
+	}
+	
 	function getTime($timing) {
 		if ( $this->schedule[$timing] ) {
 			return true;
@@ -91,7 +99,7 @@ function getAccademicSem() {
 }
 
 function generateUrl() {
-	return "http://api.nusmods.com/" .getAccademicYear(). "/" .getAccademicSem(). "/timetable.json";
+	return "http://api.nusmods.com/" .getAccademicYear(). "/" .getAccademicSem(). "/modules.json";
 }
 
 function fetchJSON($url) {
@@ -123,6 +131,7 @@ function writeObjectJsonToFile($path, $obj) {
 $nusrooms_metadata = array();
 $rooms = array();
 $roomList = array();
+$departments = array();
 
 $nusrooms_metadata["year"] = getAccademicYear();
 $nusrooms_metadata["sem"] = getAccademicSem();
@@ -142,15 +151,24 @@ foreach ($modules as $module) {
 		continue;
 	}
 	
+	$dept = $module["Department"];
+	if ( !array_key_exists ( $dept , $departments ) ) {
+		$departments[$dept] = array();
+	}
+	
 	foreach ($module["Timetable"] as &$timetable) {
 		if ( empty ( $timetable["Venue"] ) ) {
 			continue;
 		}
-		if ( array_key_exists ( $timetable["Venue"] , $rooms ) ) {
-			$rooms[ $timetable["Venue"] ]->setNotVacant( $timetable["DayText"], $timetable["StartTime"], $timetable["EndTime"] );
-		} else {
+		if ( !array_key_exists ( $timetable["Venue"] , $rooms ) ) {
 			$rooms[ $timetable["Venue"] ] = new Room( $timetable["Venue"] );
-			$rooms[ $timetable["Venue"] ]->setNotVacant( $timetable["DayText"], $timetable["StartTime"], $timetable["EndTime"] );
+		}
+		$rooms[ $timetable["Venue"] ]->setNotVacant( $timetable["DayText"], $timetable["StartTime"], $timetable["EndTime"] );
+		$rooms[ $timetable["Venue"] ]->addDept($dept);
+		
+		if ( !in_array( $timetable["Venue"], $departments[$dept] ) ) {
+			array_push( $departments[$dept], $timetable["Venue"] );
+			sort( $departments[$dept] );
 		}
 	}
 }
@@ -167,6 +185,7 @@ try {
 	writeObjectJsonToFile("nusrooms.json", $rooms);
 	writeObjectJsonToFile("roomlist.json", $roomList);
 	writeObjectJsonToFile("nusrooms_metadata.json", $nusrooms_metadata);
+	writeObjectJsonToFile("nusrooms_departments.json", $departments);
 }
 catch (Exception $e) {
     echo "Error (File: ".$e->getFile().", line ". $e->getLine()."): ".$e->getMessage() . " <br />";

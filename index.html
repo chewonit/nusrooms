@@ -43,8 +43,19 @@
 		<nav class="navbar navbar-default" role="navigation">
 			<div class="container">
 				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
 					<a class="navbar-brand" href="#">NUS Rooms</a>
 				</div>
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+					<ul class="nav navbar-nav navbar-right">
+						<button id="trash-btn" type="button" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-trash"></span></button>
+					</ul>
+				</div><!-- /.navbar-collapse -->
 			</div>
 		</nav>
 		
@@ -54,6 +65,8 @@
 					Find classrooms and lecture theatres that are free from lessons.<br />
 					Try searching for UT-AUD1, LT17 and S16-0433.<br /><br />
 					<input type="text" name="textfield_roomInput" id="textfield_roomInput" class="form-control" placeholder="Room Name"/>
+					<br />
+					<select id="select_roomInput" class="form-control"></select>
 				</div>
 			</div>
 			<div class="row">

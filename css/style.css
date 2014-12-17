@@ -16,6 +16,31 @@ h1,h2,h3,h4,h5,h6 {
 	font-family: 'Montserrat', sans-serif;
 }
 
+#loading-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background: #FFFFFF;
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+}
+#loading {
+    width: 70px;
+    height: 70px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -35px 0 0 -35px;
+}
+
+@media screen and (max-width: 767px) { 
+	.navbar-right {
+		padding-left: 10px;
+	}
+}
+
 .footer {
 	position: absolute;
 	bottom: 0;

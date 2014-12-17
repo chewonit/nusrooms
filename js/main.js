@@ -14,14 +14,49 @@ function initSuggestions($textInput, roomHandler) {
 	});
 }
 
-var RoomData = function(url) {
+function initDropDown($dropdown, roomHandler, roomData) {
 	
-	var database = (function () {
+	$dropdown.append($('<option>', { 
+		value: "default",
+		text : "Alternatively: Select a department" 
+	}));
+	$.each( roomData.getDepartmentList().sort(), function (i, item) {
+		$dropdown.append($('<option>', { 
+			value: item,
+			text : item 
+		}));
+	});
+	
+	$dropdown.change(function () {
+		var dept = this.value;
+		if ( dept == "default" ) return;
+		
+		var over = '<div id="loading-overlay">' +
+            '<img id="loading" src="images/loading.gif">' +
+            '</div>';
+        $(over).appendTo('body');
+		
+		roomHandler.clearRooms();
+		
+		setTimeout(function(){ 
+			var roomsInDept = roomData.getRoomsInDepartment(dept);
+			$.each( roomsInDept, function (i, item) {
+				roomHandler.publishSpecificRoom(item);
+			});
+			$('#loading-overlay').remove();
+		}, 10);
+		
+	});
+}
+
+var RoomData = function(urlRooms, urlDepartments) {
+	
+	var databaseRooms = (function () {
 		var json = null;
 		$.ajax({
 			'async': false,
 			'global': false,
-			'url': url,
+			'url': urlRooms,
 			'dataType': "json",
 			'success': function (data) {
 				json = data;
@@ -30,9 +65,37 @@ var RoomData = function(url) {
 		return json;
 	})();
 	
+	var databaseDepts = (function () {
+		var json = null;
+		$.ajax({
+			'async': false,
+			'global': false,
+			'url': urlDepartments,
+			'dataType': "json",
+			'success': function (data) {
+				json = data;
+			}
+		});
+		return json;
+	})();
+	
+	var deptList = (function() {
+		var list = [];
+		$.each( databaseDepts, function( key, value ) {
+			list.push(key);
+		});
+		return list;
+	})();
+	
 	return {
 		getRoomData: function(roomName) {
-			return database[roomName];
+			return databaseRooms[roomName];
+		},
+		getDepartmentList: function() {
+			return deptList;
+		},
+		getRoomsInDepartment: function(dept) {
+			return databaseDepts[dept];
 		}
 	};
 };
@@ -74,7 +137,7 @@ var RoomHandler = function(data, list, textField) {
 	
 	var rooms = [];
 	
-	function clearRooms() {
+	function clearRoomsOnList() {
 		rooms = [];
 		$('.room-item').each(function(){
 			$( this ).slideUp( 400, function() {
@@ -83,8 +146,12 @@ var RoomHandler = function(data, list, textField) {
 		});
 	}
 	
-	function appendRoom(room) {
+	function prependRoom(room) {
 		$( "<div class='room-item' style='display: none;'>" + formatRoom(room) + '</div>' ).prependTo($list).slideDown();
+		rooms.push( room.name );
+	}
+	function appendRoom(room) {
+		$( "<div class='room-item'>" + formatRoom(room) + '</div>' ).appendTo($list);
 		rooms.push( room.name );
 	}
 	
@@ -104,16 +171,25 @@ var RoomHandler = function(data, list, textField) {
 			if ( !room ) return;
 			if ( jQuery.inArray( room.name, rooms ) >= 0 ) return;
 			
+			prependRoom(room);
+			reRenderUrl();
+		},
+		publishSpecificRoom: function(roomName) {
+			var room = roomData.getRoomData( roomName );
+			
+			if ( !room ) return;
+			if ( jQuery.inArray( room.name, rooms ) >= 0 ) return;
+			
 			appendRoom(room);
 			reRenderUrl();
 		},
 		renderUrlRooms: function() {
-			parameters = $.parseParams(window.location);
+			var parameters = $.parseParams(window.location);
 			if ( jQuery.isEmptyObject( parameters ) ) {
 				return;
 			}
 			
-			clearRooms();
+			clearRoomsOnList();
 			
 			$.each( parameters, function( key, value ) {
 				var room = roomData.getRoomData( value );
@@ -132,6 +208,13 @@ var RoomHandler = function(data, list, textField) {
 			console.log(rooms);
 			
 			reRenderUrl();
+		},
+		clearRooms: function() {
+			rooms = [];
+			$('#room-list').html('');
+		},
+		clearRoomsAnimated: function() {
+			clearRoomsOnList();
 		}
 	};
 };
@@ -139,13 +222,15 @@ var RoomHandler = function(data, list, textField) {
 $( document ).ready(function() {
 	
 	var $textInput = $('#textfield_roomInput');
+	var $selectInput = $('#select_roomInput');
 	
-	var roomData = new RoomData("nusrooms.json");
+	var roomData = new RoomData("nusrooms.json", "nusrooms_departments.json");
 	var roomMetaData = new RoomMetaData("nusrooms_metadata.json");
 	
 	var roomHandler = new RoomHandler( roomData, $('#room-list'), $textInput );
 	
 	initSuggestions($textInput, roomHandler);
+	initDropDown($selectInput, roomHandler, roomData);
 	
     $textInput.keyup(function(e){
 		if(e.keyCode == 13) {
@@ -153,10 +238,10 @@ $( document ).ready(function() {
 		}
 	});
 
-	$textInput.focus();	
+	$textInput.focus();
 	
-	$('#nusrooms-status').html( roomMetaData.getYear().replace("-", "/") + " Semester " + roomMetaData.getSem() 
-		+ '<br />Room schedules updated on ' + roomMetaData.getDate());
+	$('#nusrooms-status').html( roomMetaData.getYear().replace("-", "/") + " Semester " + roomMetaData.getSem() +
+		'<br />Room schedules updated on ' + roomMetaData.getDate());
 		
 	roomHandler.renderUrlRooms();
 	
@@ -167,6 +252,10 @@ $( document ).ready(function() {
 			target.remove();
 		});
 		roomHandler.removeRoom(name);
+	});
+	
+	$(document).on('click', '#trash-btn', function() {
+		roomHandler.clearRoomsAnimated();
 	});
 });
 
@@ -186,7 +275,7 @@ function formatRoom(room) {
 			roomTable = roomTable + "<td>" + keyTime + "</td>";
 		}
 	});
-	roomTable = roomTable + "</tr>"
+	roomTable = roomTable + "</tr>";
 	
 	$.each( room.schedule, function( keyDay, valDay ) {
 		roomTable = roomTable + "<tr>";
@@ -198,7 +287,7 @@ function formatRoom(room) {
 				var text = "";
 				var color = "success";
 				if ( valTime == true ) {
-					icon = "glyphicon glyphicon-remove"
+					icon = "glyphicon glyphicon-remove";
 					text = "";
 					color = "danger";
 				}
@@ -206,7 +295,7 @@ function formatRoom(room) {
 			}
 		});
 		
-		roomTable = roomTable + "</tr>"
+		roomTable = roomTable + "</tr>";
 	});
 	
 	roomTable = roomTable + "</table></div>";
