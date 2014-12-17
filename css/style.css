@@ -35,6 +35,13 @@ h1,h2,h3,h4,h5,h6 {
     margin: -35px 0 0 -35px;
 }
 
+#info-well {
+	display: none;
+}
+#info-btn {
+	margin-left: 5px;
+}
+
 @media screen and (max-width: 767px) { 
 	.navbar-right {
 		padding-left: 10px;

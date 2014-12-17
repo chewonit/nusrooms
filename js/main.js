@@ -257,6 +257,10 @@ $( document ).ready(function() {
 	$(document).on('click', '#trash-btn', function() {
 		roomHandler.clearRoomsAnimated();
 	});
+	
+	$(document).on('click', '#info-btn', function() {
+		$('#info-well').slideToggle();
+	});
 });
 
 function formatRoom(room) {
